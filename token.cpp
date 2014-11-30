@@ -16,6 +16,10 @@ init_tokens() {
   init_token(succ_tok, "succ");
   init_token(then_tok, "then");
   init_token(true_tok, "true");
+  init_token(ls_tok, "ls");
+  init_token(mkdir_tok, "mkdir");
+  init_token(rmdir_tok, "rmdir");
+  init_token(cd_tok, "cd");
   init_token(typeof_tok, "typeof");
   init_token(unit_tok, "unit");
   // Type names
