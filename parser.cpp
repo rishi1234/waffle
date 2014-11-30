@@ -457,6 +457,63 @@ parse_typeof_expr(Parser& p) {
   return nullptr;
 }
 
+// Parse a ls expression.
+//
+// ls-expr ::= 'ls' string-expr
+Tree*
+parse_ls(Parser& p) {
+  if (const Token* k = parse::accept(p, ls_tok)) {
+    if (Tree* t = parse_primary_expr(p)) 
+          return new Ls_tree(k, t);
+    else 
+    	parse::parse_error(p) << "expected 'string-expr' after 'ls'";
+    }	 
+  return nullptr;
+}
+
+// Parse a mkdir expression.
+//
+// mkdir-expr ::= 'mkdir' string-expr
+Tree*
+parse_mkdir(Parser& p) {
+  if (const Token* k = parse::accept(p, mkdir_tok)) {
+    if (Tree* t = parse_primary_expr(p)) 
+          return new Mkdir_tree(k, t);
+    else 
+      parse::parse_error(p) << "expected 'string-expr' after 'mkdir'";
+    }  
+  return nullptr;
+}
+
+// Parse a rmdir expression.
+//
+// rmdir-expr ::= 'rmdir' string-expr
+Tree*
+parse_rmdir(Parser& p) {
+  if (const Token* k = parse::accept(p, rmdir_tok)) {
+    if (Tree* t = parse_primary_expr(p)) 
+          return new Rmdir_tree(k, t);
+    else 
+      parse::parse_error(p) << "expected 'string-expr' after 'rmdir'";
+    }  
+  return nullptr;
+}
+
+// Parse a cd expression.
+//
+// cd-expr ::= 'cd' string-expr
+Tree*
+parse_cd(Parser& p) {
+  if (const Token* k = parse::accept(p, cd_tok)) {
+    if (Tree* t = parse_primary_expr(p)) 
+          return new Cd_tree(k, t);
+    else 
+      parse::parse_error(p) << "expected 'string-expr' after 'cd'";
+    }  
+  return nullptr;
+}
+
+
 // Parse a prefix expr.
 //
 //    prefix-expr ::= if-expr | succ-epxr | pred-expr | iszero-expr
@@ -475,6 +532,14 @@ parse_prefix_expr(Parser& p) {
     return t;
   if (Tree* t = parse_typeof_expr(p))
     return t;
+  if (Tree* t = parse_ls(p))
+    return t;
+  if (Tree* t = parse_mkdir(p))
+    return t;
+  if (Tree* t = parse_rmdir(p))
+    return t;
+  if (Tree* t = parse_cd(p))
+    return t;	
   return parse_postfix_expr(p);
 }
 
