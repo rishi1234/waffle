@@ -11,6 +11,8 @@ Kind_type* kind_type_;
 Unit_type* unit_type_;
 Bool_type* bool_type_;
 Nat_type* nat_type_;
+Str_type* str_type_;
+Path_type* path_type_;
 
 } // namespace
 
@@ -20,6 +22,8 @@ init_types() {
   unit_type_ = new Unit_type(kind_type_);
   bool_type_ = new Bool_type(kind_type_);
   nat_type_ = new Nat_type(kind_type_);
+  str_type_ = new Str_type(kind_type_);
+  path_type_= new Path_type(kind_type_);
 }
 
 Type*
@@ -34,7 +38,11 @@ get_bool_type() { return bool_type_; }
 Type*
 get_nat_type() { return nat_type_; }
 
+Type*
+get_str_type() { return str_type_; }
 
+Type*
+get_path_type() { return path_type_; }
 // -------------------------------------------------------------------------- //
 // Typing
 
@@ -52,6 +60,14 @@ is_bool_type(Type* t) { return t->kind == bool_type; }
 // Returns true if t is the nat type.
 bool
 is_nat_type(Type* t) { return t->kind == nat_type; }
+
+// Returns true if t is the str type.
+bool
+is_str_type(Type* t) { return t->kind == str_type; }
+
+// Returns true if t is the path type.
+bool
+is_path_type(Type* t) { return t->kind == path_type; }
 
 // Returns true if t is an arrow type.
 bool 

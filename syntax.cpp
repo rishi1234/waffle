@@ -23,10 +23,16 @@ init_trees() {
   init_node(print_tree, "print-tree");
   init_node(typeof_tree, "typeof-tree");
   init_node(tuple_tree, "tuple-tree");
+  init_node(list_tree, "list-tree");
   init_node(variant_tree, "variant-tree");
   init_node(comma_tree, "comma-tree");
   init_node(dot_tree, "dot-tree");
   init_node(prog_tree, "prog-tree");
+  init_node(ls_tree, "ls-tree");//Rishi
+  init_node(mkdir_tree, "mkdir-tree");//Rishi
+  init_node(rmdir_tree, "rmdir-tree");//Rishi
+  init_node(cd_tree, "cd-tree");//Rishi
+  init_node(mv_tree, "mv-tree");//Rishi
 }
 
 // -------------------------------------------------------------------------- //
@@ -86,6 +92,36 @@ pp_iszero(std::ostream& os, Iszero_tree* t) {
   os << "iszero " << group(pretty(t->t1));
 }
 
+//Rishi
+void
+pp_ls(std::ostream& os, Ls_tree* t) {
+  os << "ls " << (pretty(t->t1));
+}
+
+//Rishi
+void
+pp_mkdir(std::ostream& os, Mkdir_tree* t) {
+  os << "mkdir " << (pretty(t->t1));
+}
+
+//Rishi
+void
+pp_rmdir(std::ostream& os, Rmdir_tree* t) {
+  os << "rmdir " << (pretty(t->t1));
+}
+
+//Rishi
+void
+pp_cd(std::ostream& os, Cd_tree* t) {
+  os << "cd " << (pretty(t->t1));
+}
+
+//Rishi
+void
+pp_mv(std::ostream& os, Mv_tree* t) {
+  os << "mv " << (pretty(t->t1))<<" " << (pretty(t->t2));
+}
+
 void
 pp_arrow(std::ostream& os, Arrow_tree* t) {
   os << pretty(t->left()) << " -> " << group(pretty(t->right()));
@@ -109,6 +145,11 @@ pp_typeof(std::ostream& os, Typeof_tree* t) {
 void
 pp_tuple(std::ostream& os, Tuple_tree* t) {
   os << '{' << commas(t->elems()) << '}';
+}
+
+void
+pp_list(std::ostream& os, List_tree* t) {
+  os << '[' << commas(t->elems()) << ']';
 }
 
 void
@@ -153,12 +194,18 @@ print(std::ostream& os, Tree* t) {
   case if_tree:  return pp_if(os, as<If_tree>(t));
   case succ_tree: return pp_succ(os, as<Succ_tree>(t));
   case pred_tree: return pp_pred(os, as<Pred_tree>(t));
+  case ls_tree: return pp_ls(os, as<Ls_tree>(t));//Rishi
+  case mkdir_tree: return pp_mkdir(os, as<Mkdir_tree>(t));//Rishi
+  case rmdir_tree: return pp_rmdir(os, as<Rmdir_tree>(t));//Rishi
+  case cd_tree: return pp_cd(os, as<Cd_tree>(t));//Rishi
+  case mv_tree: return pp_mv(os, as<Mv_tree>(t));//Rishi
   case iszero_tree: return pp_iszero(os, as<Iszero_tree>(t));
   case arrow_tree: return pp_arrow(os, as<Arrow_tree>(t));
   case def_tree: return pp_def(os, as<Def_tree>(t));
   case print_tree: return pp_print(os, as<Print_tree>(t));
   case typeof_tree: return pp_typeof(os, as<Typeof_tree>(t));
   case tuple_tree: return pp_tuple(os, as<Tuple_tree>(t));
+  case list_tree: return pp_list(os, as<List_tree>(t));
   case variant_tree: return pp_variant(os, as<Variant_tree>(t));
   case comma_tree: return pp_comma(os, as<Comma_tree>(t));
   case dot_tree: return pp_dot(os, as<Dot_tree>(t));

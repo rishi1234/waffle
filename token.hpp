@@ -24,6 +24,7 @@ constexpr Token_kind backslash_tok = make_token("\\");
 constexpr Token_kind colon_tok     = make_token(":");
 constexpr Token_kind dot_tok       = make_token(".");
 constexpr Token_kind comma_tok     = make_token(",");
+constexpr Token_kind dquote_tok    = make_token('"');
 constexpr Token_kind arrow_tok     = make_token("->");
 constexpr Token_kind map_tok       = make_token("=>");
 // Keywords
@@ -39,10 +40,11 @@ constexpr Token_kind then_tok      = make_token(108);
 constexpr Token_kind true_tok      = make_token(109);
 constexpr Token_kind typeof_tok    = make_token(110);
 constexpr Token_kind unit_tok      = make_token(111);
-constexpr Token_kind ls_tok        = make_token(112);
-constexpr Token_kind mkdir_tok     = make_token(113);
-constexpr Token_kind rmdir_tok     = make_token(114);
-constexpr Token_kind cd_tok        = make_token(115);
+constexpr Token_kind ls_tok        = make_token(112);//rishi
+constexpr Token_kind mkdir_tok     = make_token(113);//rishi
+constexpr Token_kind rmdir_tok     = make_token(114);//rishi
+constexpr Token_kind cd_tok        = make_token(115);//rishi
+constexpr Token_kind mv_tok        = make_token(116);//rishi
 // Type names
 constexpr Token_kind bool_type_tok = make_token(200);
 constexpr Token_kind nat_type_tok  = make_token(201);

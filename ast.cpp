@@ -13,14 +13,21 @@ init_nodes() {
   // Terms
   init_node(def_term, "def");
   init_node(init_term, "init");
+  init_node(ls_term, "ls");
+  init_node(mkdir_term, "mkdir");
+  init_node(rmdir_term, "rmdir");
+  init_node(cd_term, "cd");
+  init_node(mv_term, "mv");
   init_node(unit_term, "unit");
   init_node(true_term, "true");
   init_node(false_term, "false");
   init_node(int_term, "int");
+  init_node(path_term, "path");//Rishi
   init_node(var_term, "var");
   init_node(abs_term, "abs");
   init_node(app_term, "app");
   init_node(tuple_term, "tuple");
+  init_node(list_term, "list");
   init_node(record_term, "record");
   init_node(comma_term, "comma");
   init_node(proj_term, "proj");
@@ -29,9 +36,12 @@ init_nodes() {
   init_node(kind_type, "kind-type");
   init_node(unit_type, "unit-type");
   init_node(bool_type, "bool-type");
+  init_node(path_type, "path-type");
   init_node(nat_type, "nat-type");
+  init_node(str_type, "str-type");
   init_node(arrow_type, "arrow-type");
   init_node(tuple_type, "tuple-type");
+  init_node(list_type, "list-type");
 }
 
 // -------------------------------------------------------------------------- //
@@ -39,12 +49,18 @@ init_nodes() {
 
 bool
 is_term_literal(Term* t) {
-  return is_unit(t) || is_boolean_value(t) || is_integer_value(t);
+  return is_unit(t) 
+      or is_boolean_value(t) 
+      or is_integer_value(t) 
+      or is_string_value(t);
 }
 
 bool
 is_type_literal(Type* t) {
-  return is_unit_type(t) || is_bool_type(t) || is_nat_type(t);
+  return is_unit_type(t) 
+      or is_bool_type(t) 
+      or is_nat_type(t)
+      or is_str_type(t);
 }
 
 // Returns true if t is a term literal or type literal.
@@ -75,8 +91,9 @@ is_terminal(Expr* t) {
 namespace {
 
 // TODO: This should move into the printing support library.
-void
-pp_value(std::ostream& os, const Integer& n) { os << n; }
+template<typename T>
+  void
+  pp_value(std::ostream& os, const T& x) { os << x; }
 
 void
 pp_if(std::ostream& os, If* t) {
@@ -131,6 +148,31 @@ pp_def(std::ostream& os, Def* t) {
 }
 
 void
+pp_ls(std::ostream& os, Ls* t) {
+  os << "ls " << pretty(t->t1);
+}
+
+void
+pp_mkdir(std::ostream& os, Mkdir* t) {
+  os << "mkdir " << pretty(t->t1);
+}
+
+void
+pp_rmdir(std::ostream& os, Rmdir* t) {
+  os << "rmdir " << pretty(t->t1);
+}
+
+void
+pp_cd(std::ostream& os, Cd* t) {
+  os << "cd " << pretty(t->t1);
+}
+
+void
+pp_mv(std::ostream& os, Mv* t) {
+  os << "mv " << pretty(t->t1)<<" "<< pretty(t->t2);
+}
+
+void
 pp_init(std::ostream& os, Init* t) {
   os << pretty(t->name()) << " = " << pretty(t->value());
 }
@@ -138,6 +180,11 @@ pp_init(std::ostream& os, Init* t) {
 void
 pp_tuple(std::ostream& os, Tuple* t) {
   os << '{' << commas(t->elems()) << '}';
+}
+
+void
+pp_list(std::ostream& os, List* t) {
+  os << '[' << commas(t->elems()) << ']';
 }
 
 void
@@ -204,6 +251,11 @@ pp_tuple_type(std::ostream& os, Tuple_type* t) {
 }
 
 void
+pp_list_type(std::ostream& os, List_type* t) {
+  os << '[' << pretty(t->type()) << ']';
+}
+
+void
 pp_record_type(std::ostream& os, Record_type* t) {
   os << '{' << commas(t->members()) << '}';
 }
@@ -226,8 +278,15 @@ pp_expr(std::ostream& os, Node* t) {
   case true_term: return pp_string(os, "true");
   case false_term: return pp_string(os, "false");
   case int_term: return pp_value(os, as<Int>(t)->value());
+  case str_term: return pp_value(os, as<Str>(t)->value());
+  case path_term: return pp_value(os, as<Path>(t)->value());
   case if_term: return pp_if(os, as<If>(t));
   case succ_term: return pp_succ(os, as<Succ>(t));
+  case ls_term: return pp_ls(os, as<Ls>(t)); 
+  case mkdir_term: return pp_mkdir(os, as<Mkdir>(t)); 
+  case rmdir_term: return pp_rmdir(os, as<Rmdir>(t)); 
+  case cd_term: return pp_cd(os, as<Cd>(t)); 
+  case mv_term: return pp_mv(os, as<Mv>(t)); 
   case pred_term: return pp_pred(os, as<Pred>(t));
   case iszero_term: return pp_iszero(os, as<Iszero>(t));
   case var_term: return pp_var(os, as<Var>(t));
@@ -239,6 +298,7 @@ pp_expr(std::ostream& os, Node* t) {
   case def_term: return pp_def(os, as<Def>(t));
   case init_term: return pp_init(os, as<Init>(t));
   case tuple_term: return pp_tuple(os, as<Tuple>(t));
+  case list_term: return pp_list(os, as<List>(t));
   case record_term: return pp_record(os, as<Record>(t));
   case comma_term: return pp_comma(os, as<Comma>(t));
   case proj_term: return pp_proj(os, as<Proj>(t));
@@ -248,9 +308,12 @@ pp_expr(std::ostream& os, Node* t) {
   case unit_type: return pp_string(os, "Unit");
   case bool_type: return pp_string(os, "Bool");
   case nat_type: return pp_string(os, "Nat");
+  case str_type: return pp_string(os, "Str");
+  case path_type: return pp_string(os, "Path");// Rishi
   case arrow_type: return pp_arrow_type(os, as<Arrow_type>(t));
   case fn_type: return pp_fn_type(os, as<Fn_type>(t));
   case tuple_type: return pp_tuple_type(os, as<Tuple_type>(t));
+  case list_type: return pp_list_type(os, as<List_type>(t));
   case record_type: return pp_record_type(os, as<Record_type>(t));
   default: break;
   }

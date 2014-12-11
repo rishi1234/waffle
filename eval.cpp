@@ -5,10 +5,11 @@
 #include "type.hpp"
 #include "value.hpp"
 #include "subst.hpp"
-
+#include "boost/filesystem.hpp"
 #include "lang/debug.hpp"
 
 #include <iostream>
+#include <unistd.h>
 
 // -------------------------------------------------------------------------- //
 // Evaluator class
@@ -65,6 +66,117 @@ eval_succ(Succ* t) {
     return new Int(t->loc, get_type(t), z + 1);
   }
   lang_unreachable(format("'{}' is not a numeric value", pretty(t1)));
+}
+
+
+//Evaluate a ls term. 
+Term*
+eval_ls(Ls* t) {
+  Term* t1 = eval(t->t1);
+  Term_seq* op=new Term_seq();
+  if (Str* n = as<Str>(t1))
+   {
+    String z = n->value();
+    String k=sub_str(z);
+    boost::filesystem::path p = k.str();
+    Type* type=new Path_type(get_path_type());
+    boost::filesystem::directory_iterator end_itr;
+    for (boost::filesystem::directory_iterator itr(p); itr != end_itr; ++itr)
+    {   
+      {
+        String z1=itr->path().string();
+      	op->push_back(new Path(get_path_type(),z1));
+      }
+    }
+    return new List(new List_type(get_path_type(),type),op);
+   }
+  lang_unreachable(format("'{}' is not a string value", pretty(t1)));
+}
+
+// Mkdir Evaluation
+Term*
+eval_mkdir(Mkdir* t) {
+  Term* t1 = eval(t->t1);
+  if (Str* n = as<Str>(t1))
+   {
+    String z = n->value();
+    String k=sub_str(z);
+    boost::filesystem::path p = k.str();
+    if(!boost::filesystem::is_directory(p))
+    {
+    boost::filesystem::create_directories(p);
+   	return get_true();
+    }
+    else
+    return get_false();
+   }
+  lang_unreachable(format("'{}' is not a string value", pretty(t1)));
+}
+
+
+// Rmdir Evaluation
+Term*
+eval_rmdir(Rmdir* t) {
+  Term* t1 = eval(t->t1);
+  if (Str* n = as<Str>(t1))
+   {
+    String z = n->value();
+    String k=sub_str(z);
+    boost::filesystem::path p = k.str();
+    if(is_directory(p))
+    {
+    boost::filesystem::remove_all(p);
+    return  get_true();
+    }
+   else
+   	return  get_false();
+   }
+  lang_unreachable(format("'{}' is not a string value", pretty(t1)));
+}
+
+// Rmdir Evaluation
+Term*
+eval_cd(Cd* t) {
+  Term* t1 = eval(t->t1);
+  if (Str* n = as<Str>(t1))
+   {
+    String z = n->value();
+    String k=sub_str(z);
+    boost::filesystem::path p = k.str();
+    if(is_directory(p))
+    {
+    chdir(p.string().data());
+    std::cout<<boost::filesystem::current_path()<<'\n';
+    return get_true();
+    }
+    else
+    return  get_false();
+   }
+  lang_unreachable(format("'{}' is not a string value", pretty(t1)));
+}
+
+
+// Rename Evaluation
+Term*
+eval_mv(Mv* t) {
+  Term* t1 = eval(t->t1);
+  Term* t2 = eval(t->t2);
+  if (Str* n = as<Str>(t1))
+   {
+    String z = n->value();
+    String k=sub_str(z);
+    if(Str* n1=as<Str>(t2))
+    {
+    String z1 = n1->value();
+    String k1 =sub_str(z1);
+    boost::filesystem::path p  = k.str();
+    boost::filesystem::path p1 = k1.str();
+    boost::filesystem::rename(p,p1);
+    return  get_true();
+   }
+   return get_false();
+  }
+  lang_unreachable(format("'{}' is not a string value", pretty(t1)));
 }
 
 // Evalutae a predecessor term.
@@ -252,6 +364,11 @@ eval(Term* t) {
   switch (t->kind) {
   case if_term: return eval_if(as<If>(t));
   case succ_term: return eval_succ(as<Succ>(t));
+  case ls_term: return eval_ls(as<Ls>(t));
+  case mkdir_term: return eval_mkdir(as<Mkdir>(t));
+  case rmdir_term: return eval_rmdir(as<Rmdir>(t));
+  case cd_term: return eval_cd(as<Cd>(t));
+  case mv_term: return eval_mv(as<Mv>(t));
   case pred_term: return eval_pred(as<Pred>(t));
   case iszero_term: return eval_iszero(as<Iszero>(t));
   case app_term: return eval_app(as<App>(t));

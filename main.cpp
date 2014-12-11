@@ -47,7 +47,7 @@ int main() {
   // Elaboration
   //
   // Elaborate the parse tree, producing a fully typed abstract
-  // syntax tree.
+  // syntax tree. 
   Elaborator elab;
   Expr* prog = elab(tree);
   if (not elab.diags.empty()) {

@@ -54,6 +54,10 @@ lex_tokens(Lexer& lex) {
       lex::error(lex);
     break;
 
+  case '"':
+    lex::string(lex);
+    break;
+
   default:
     // Maybe this is an identifier, keyowrd, or number.
     if (lex::is_id_head(*lex.first))

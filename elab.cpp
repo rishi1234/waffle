@@ -137,13 +137,16 @@ elab_lit(Lit_tree* t) {
     return new False(t->loc, get_bool_type());
   case decimal_literal_tok: 
     return new Int(t->loc, get_nat_type(), as_integer(*k));
+  case string_literal_tok:
+    return new Str(t->loc, get_str_type(), as_string(*k));
   case unit_type_tok: 
     return new Unit_type(t->loc, get_kind_type());
   case bool_type_tok: 
     return new Bool_type(t->loc, get_kind_type());
   case nat_type_tok: 
     return new Nat_type(t->loc, get_kind_type());
-  default: break;
+  default: 
+    break;
   }
   lang_unreachable(format("elaborating unknown literal '{}'", pretty(t)));
 }
@@ -606,6 +609,7 @@ elab_tuple_type(Tuple_tree* t, Type* t0) {
   return new Tuple_type(t->loc, get_kind_type(), types);
 }
 
+
 // Return the variable describing an initializer.
 Term*
 get_var(Init* t) {
@@ -683,15 +687,15 @@ elab_record_type(Tuple_tree* t, Var* t0) {
 }
 
 // Elaborate a tuple expression. Note that there are many
-// forms that this tuple can represent. In the case that there
-// are no elements, that is the same as unit.
+// forms that this tuple can represent. 
 //
-//    {} = unit
+// FIXME: What should we do about an empty tuple?
 Expr*
 elab_tuple(Tuple_tree* t) {
-  // An empty tuple is defined to be unit.
-  if (t->elems()->empty())
-    return new Unit(t->loc, get_unit_type());
+  if (t->elems()->empty()) {
+    error(t->loc) << format("empty tuple or record expression '{}'", pretty(t));
+    return nullptr;
+  }
 
   // Elaborate the first element of the tuple. It determines
   // the elaboration of the remaining elements.
@@ -705,8 +709,80 @@ elab_tuple(Tuple_tree* t) {
   if (Type* type = as<Type>(expr))
     return elab_tuple_type(t, type);
 
-  error(t->loc) << format("ill-formed expression '{}'", pretty(t)) << '\n';
+  error(t->loc) << format("ill-formed expression '{}'", pretty(t));
+  return nullptr;
 }
+
+// Elaboreate a list type.
+//
+Expr*
+elab_list_type(List_tree* t, Type* t0) {
+  if (t->elems()->size() > 1) {
+    error(t->loc) << format("ill-formed list type '{}'", pretty(t));
+    return nullptr;
+  }
+  return new List_type(get_kind_type(), t0);
+}
+
+// Elaborate a list of terms.
+Expr*
+elab_list(List_tree* t, Term* t0) {
+  Term_seq* terms = new Term_seq {t0};
+  Type* value_type = get_type(t0);
+
+  auto iter = std::next(t->elems()->begin());
+  auto end = t->elems()->end();
+  while (iter != end) {
+    Expr* ei = elab_expr(*iter);
+    if (Term* ti = as<Term>(ei)) {
+      if (!is_same (get_type(ti), value_type)) {
+        error(ti->loc) << format("list element {} does not have type '{}'",
+                                 typed(ti), 
+                                 pretty(value_type));
+        return nullptr;
+      }
+      terms->push_back(ti);
+    } else if(ei) {
+      error(ei->loc) << format("'{}' cannot appear in a list", pretty(ei));
+      return nullptr;
+    } else {
+      return nullptr;
+    }
+    ++iter;
+  }
+
+  Type* type = new List_type(get_kind_type(), value_type);
+  return new List(t->loc, type, terms);
+}
+
+// Elaborate a list of expressions. The elaboration depends on the
+// form of the list. When the list has the form
+//
+//  - [T] where T is a type, this is the list type [T].
+//  - [t1, ..., tn] where each ti is a term whose type is T, then
+//    this is the a list whose type is [T].
+//
+// The prorgram is ill-formed if the list has any other form.
+//
+// FIXME: When the list expresison has the form [], create an empty
+// list whose type is unspecified, and then require ascription for
+// a well-typed expression? That's a bit flimsy.
+Expr*
+elab_list(List_tree *t) {
+  if (t->elems()->empty()) {
+    error(t->loc) << format("empty list expression '{}'", pretty(t));
+    return nullptr;
+  }
+
+  Expr* expr = elab_expr(t->elems()->front());
+  if (Type* type = as<Type>(expr))
+    return elab_list_type(t, type);
+  if (Term* term = as<Term>(expr))
+    return elab_list(t, term);
+
+  error(t->loc) << format("ill-formed list expression '{}'", pretty(t));
+}
+
 
 // Return a variable describing an initializer.
 Expr*
@@ -725,6 +801,72 @@ elab_print(Print_tree* t) {
   if (not t1)
     return nullptr;
   return new Print(t->loc, get_unit_type(), t1);
+}
+
+// Elaborate a ls expression.
+//
+//        G |- t : T
+//    ------------------- T-ls
+//    G |- ls t : path
+Expr*
+elab_ls(Ls_tree* t) {
+  Term* t1 = elab_term(t->t1);
+  if (not t1)
+    return nullptr;
+  return new Ls(t->loc, get_path_type(), t1);
+}
+
+// Elaborate a mkdir expression.
+//
+//        G |- t : T
+//    --------------------- T-mkdir
+//    G |- mkdir t : Bool
+Expr*
+elab_mkdir(Mkdir_tree* t) {
+  Term* t1 = elab_term(t->t1);
+  if (not t1)
+    return nullptr;
+  return new Mkdir(t->loc, get_bool_type(), t1);
+}
+// Elaborate a rmdir expression.
+//
+//        G |- t : T
+//    --------------------- T-rmdir
+//    G |- rmdir t : Bool
+Expr*
+elab_rmdir(Rmdir_tree* t) {
+  Term* t1 = elab_term(t->t1);
+  if (not t1)
+    return nullptr;
+  return new Rmdir(t->loc, get_bool_type(), t1);
+}
+// Elaborate a ls expression.
+//
+//        G |- t : T
+//    ------------------- T-cd
+//    G |- cd t : path
+Expr*
+elab_cd(Cd_tree* t) {
+  Term* t1 = elab_term(t->t1);
+  if (not t1)
+    return nullptr;
+  return new Cd(t->loc, get_path_type(), t1);
+}
+
+// Elaborate a mv expression.
+//
+//        G |- t : T
+//    ------------------- T-mv
+//    G |- mv t t1: Bool
+Expr*
+elab_mv(Mv_tree* t) {
+  Term* t1 = elab_term(t->t1);
+  Term* t2 = elab_term(t->t2);
+  if (not t1)
+    return nullptr;
+  if (not t2)
+    return nullptr;
+  return new Mv(t->loc, get_bool_type(), t1, t2);
 }
 
 // A typeof expression is an alias for the type of the 
@@ -847,10 +989,16 @@ elab_expr(Tree* t) {
   case app_tree: return elab_app(as<App_tree>(t));
   case if_tree: return elab_if(as<If_tree>(t));
   case succ_tree: return elab_succ(as<Succ_tree>(t));
+  case ls_tree: return elab_ls(as<Ls_tree>(t)); 
+  case mkdir_tree: return elab_mkdir(as<Mkdir_tree>(t)); 
+  case rmdir_tree: return elab_rmdir(as<Rmdir_tree>(t)); 
+  case cd_tree: return elab_cd(as<Cd_tree>(t)); 
+  case mv_tree: return elab_mv(as<Mv_tree>(t)); 
   case pred_tree: return elab_pred(as<Pred_tree>(t));
   case iszero_tree: return elab_iszero(as<Iszero_tree>(t));
   case arrow_tree: return elab_arrow(as<Arrow_tree>(t));
   case tuple_tree: return elab_tuple(as<Tuple_tree>(t));
+  case list_tree: return elab_list(as<List_tree>(t));
   case variant_tree: return elab_variant(as<Variant_tree>(t));
   case print_tree: return elab_print(as<Print_tree>(t));
   case typeof_tree: return elab_typeof(as<Typeof_tree>(t));

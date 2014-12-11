@@ -3,6 +3,7 @@
 #define AST_HPP
 
 #include "pretty.hpp"
+#include <boost/filesystem.hpp>
 
 #include "lang/string.hpp"
 #include "lang/integer.hpp"
@@ -28,6 +29,9 @@ constexpr Node_kind int_term     = make_term_node(20); // N
 constexpr Node_kind succ_term    = make_term_node(21); // succ t
 constexpr Node_kind pred_term    = make_term_node(22); // pred t
 constexpr Node_kind iszero_term  = make_term_node(23); // iszero t
+// String terms
+constexpr Node_kind str_term    = make_term_node(25);  // "str"
+constexpr Node_kind path_term   = make_term_node(26);  // "path"
 // Lambda terms
 constexpr Node_kind var_term     = make_term_node(30); // x : T
 constexpr Node_kind abs_term     = make_term_node(31); // \v.t
@@ -36,14 +40,20 @@ constexpr Node_kind app_term     = make_term_node(33); // t1 t2
 constexpr Node_kind call_term    = make_term_node(34); // (t1, ..., tn)
 // Tuples, records, and variants
 constexpr Node_kind tuple_term   = make_term_node(40); // {t1, ..., tn}
-constexpr Node_kind record_term  = make_term_node(41); // {l1=t1, ..., ln=tn}
-constexpr Node_kind variant_term = make_term_node(42); // <l1=t1, ..., ln=tn>
-constexpr Node_kind comma_term   = make_term_node(43); // t1, ..., tn
-constexpr Node_kind proj_term    = make_term_node(44); // t1.n
-constexpr Node_kind mem_term     = make_term_node(45); // t1.x
+constexpr Node_kind list_term    = make_term_node(41); // [t1, ..., tn]
+constexpr Node_kind record_term  = make_term_node(42); // {l1=t1, ..., ln=tn}
+constexpr Node_kind variant_term = make_term_node(43); // <l1=t1, ..., ln=tn>
+constexpr Node_kind comma_term   = make_term_node(44); // t1, ..., tn
+constexpr Node_kind proj_term    = make_term_node(45); // t1.n
+constexpr Node_kind mem_term     = make_term_node(46); // t1.x
 // Declarations
 constexpr Node_kind def_term     = make_term_node(50); // def n = t
 constexpr Node_kind init_term    = make_term_node(51); // n = t
+constexpr Node_kind ls_term      = make_term_node(52); 
+constexpr Node_kind mkdir_term   = make_term_node(53); 
+constexpr Node_kind rmdir_term   = make_term_node(54); 
+constexpr Node_kind cd_term      = make_term_node(55); 
+constexpr Node_kind mv_term      = make_term_node(56); 
 // Miscellaneous terms
 constexpr Node_kind ref_term     = make_term_node(100); // ref to decl
 constexpr Node_kind print_term   = make_term_node(101); // print t
@@ -53,11 +63,14 @@ constexpr Node_kind kind_type    = make_type_node(1);  // *
 constexpr Node_kind unit_type    = make_type_node(2);  // Unit
 constexpr Node_kind bool_type    = make_type_node(3);  // Bool
 constexpr Node_kind nat_type     = make_type_node(5);  // Nat
-constexpr Node_kind arrow_type   = make_type_node(6);  // T -> U
-constexpr Node_kind fn_type      = make_type_node(7);  // (T1, ..., Tn) -> U
-constexpr Node_kind tuple_type   = make_type_node(8);  // {T1, ..., Tn}
-constexpr Node_kind record_type  = make_type_node(9);  // {l1:T1, ..., ln:Tn}
-constexpr Node_kind variant_type = make_type_node(10); // <l1:T1, ..., ln:Tn>
+constexpr Node_kind str_type     = make_type_node(6);  // Str
+constexpr Node_kind path_type    = make_type_node(7);  // Path
+constexpr Node_kind arrow_type   = make_type_node(20); // T -> U
+constexpr Node_kind fn_type      = make_type_node(21); // (T1, ..., Tn) -> U
+constexpr Node_kind tuple_type   = make_type_node(22); // {T1, ..., Tn}
+constexpr Node_kind list_type    = make_type_node(23); // [T]
+constexpr Node_kind record_type  = make_type_node(24); // {l1:T1, ..., ln:Tn}
+constexpr Node_kind variant_type = make_type_node(25); // <l1:T1, ..., ln:Tn>
 
 
 // -------------------------------------------------------------------------- //
@@ -170,6 +183,19 @@ struct Int : Term {
   Integer t1;
 };
 
+
+// Represents an path.
+struct Path : Term {
+ Path(Type* t,  String p)
+    : Term(path_term, t) ,t1(p.str()){ }
+  Path(const Location& l, Type* t,  String p) 
+    : Term(path_term, l, t), t1(p.str()) { }
+
+  String value() { return t1; }
+
+  String t1;
+};
+
 // Represents the term 'succ t'.
 struct Succ : Term {
   Succ(Type* t0, Term* t) 
@@ -204,6 +230,19 @@ struct Iszero : Term {
   Term* arg() const { return t1; }
 
   Term* t1;
+};
+
+// Represents the string literal "...", a sequence of characters
+// enclosed in quotes.
+struct Str : Term {
+  Str(Type* t, String s)
+    : Term(str_term, t), t1(s) { }
+  Str(const Location& l, Type* t, String s)
+    : Term(str_term, l, t), t1(s) { }
+
+  String value() const { return t1; }
+
+  String t1;
 };
 
 // A variable declaration of the form 'x : T' in a lambda
@@ -315,13 +354,74 @@ struct Init : Term {
   Expr* t2;
 };
 
-// A tuple of the form '{t1, ..., tn}' where each ti is
-// a term.
+
+struct Ls : Term {
+  Ls(Type* t, Term* t1)
+    : Term(ls_term,t), t1(t1) { }
+  Ls(const Location& l,Type* t, Term* t1)
+    : Term(ls_term, l, t), t1(t1) { }
+
+  Term* t1;
+};
+
+
+struct Mkdir : Term {
+  Mkdir(Type* t, Term* t1)
+    : Term(mkdir_term,t), t1(t1) { }
+  Mkdir(const Location& l,Type* t, Term* t1)
+    : Term(mkdir_term, l, t), t1(t1) { }
+
+  Term* t1;
+};
+
+struct Rmdir : Term {
+  Rmdir(Type* t, Term* t1)
+    : Term(rmdir_term,t), t1(t1) { }
+  Rmdir(const Location& l,Type* t, Term* t1)
+    : Term(rmdir_term, l, t), t1(t1) { }
+
+  Term* t1;
+};
+
+
+struct Cd : Term {
+  Cd(Type* t, Term* t1)
+    : Term(cd_term,t), t1(t1) { }
+  Cd(const Location& l,Type* t, Term* t1)
+    : Term(cd_term, l, t), t1(t1) { }
+
+  Term* t1;
+};
+
+
+struct Mv : Term {
+  Mv(Type* t, Term* t1, Term* t2)
+    : Term(mv_term,t), t1(t1), t2(t2) { }
+  Mv(const Location& l,Type* t, Term* t1, Term* t2)
+    : Term(mv_term, l, t), t1(t1), t2(t2) { }
+
+  Term* t1;
+  Term* t2;
+};
+
+// A tuple of the form '{t1, ..., tn}' where each 'ti' is a term.
 struct Tuple : Term {
   Tuple(Type* t, Term_seq* ts)
     : Term(tuple_term, t), t1(ts) { }
   Tuple(const Location& l, Type* t, Term_seq* ts)
     : Term(tuple_term, l, t), t1(ts) { }
+
+  Term_seq* elems() const { return t1; }
+
+  Term_seq* t1;
+};
+
+// A list of the form '[t1, ..., tn]' where each 'ti' is a term.
+struct List : Term {
+  List(Type* t, Term_seq* ts)
+    : Term(list_term, t), t1(ts) { }
+  List(const Location& l, Type* t, Term_seq* ts)
+    : Term(list_term, l, t), t1(ts) { }
 
   Term_seq* elems() const { return t1; }
 
@@ -458,6 +558,23 @@ struct Nat_type : Type {
     : Type(nat_type, l, k) { }
 };
 
+// Represents the path type.
+struct Path_type : Type {
+  Path_type(Type* k)
+    : Type(path_type, k) { }
+  Path_type(const Location& l, Type* k)
+    : Type(path_type, l, k) { }
+};
+
+
+// Represents the type of string vales.
+struct Str_type : Type {
+  Str_type(Type* k)
+    : Type(str_type, k) { }
+  Str_type(const Location& l, Type* k)
+    : Type(str_type, l, k) { }
+};
+
 // An arrow type of the form 'T1->T2'.
 struct Arrow_type : Type {
   Arrow_type(Type* k, Type* t1, Type* t2)
@@ -486,7 +603,7 @@ struct Fn_type : Type {
   Type* t2;
 };
 
-// The type of a type has the form '{T1, ..., Tn}'.
+// The type of a tuple has the form '{T1, ..., Tn}'.
 struct Tuple_type : Type {
   Tuple_type(Type* k, Type_seq* ts)
     : Type(tuple_type, k), t1(ts) { }
@@ -496,6 +613,18 @@ struct Tuple_type : Type {
   Type_seq* types() const { return t1; }
 
   Type_seq* t1;
+};
+
+// The type of a list has the form [T].
+struct List_type : Type {
+  List_type(Type* k, Type* ts)
+    : Type(list_type, k), t1(ts) { }
+  List_type(const Location& l, Type* k, Type* ts)
+    : Type(list_type, l, k), t1(ts) { }
+
+  Type* type() const { return t1; }
+
+  Type* t1;
 };
 
 // The type of a record has the form '{n1:T1, ..., nn:Tn}' 

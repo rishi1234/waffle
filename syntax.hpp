@@ -19,11 +19,17 @@ constexpr Node_kind if_tree      = make_tree_node(120); // if t1 ...
 constexpr Node_kind succ_tree    = make_tree_node(130); // succ t
 constexpr Node_kind pred_tree    = make_tree_node(131); // pred t
 constexpr Node_kind iszero_tree  = make_tree_node(132); // iszero t
+constexpr Node_kind ls_tree      = make_tree_node(133); // ls t
+constexpr Node_kind mkdir_tree   = make_tree_node(134); // mkdir t
+constexpr Node_kind rmdir_tree   = make_tree_node(135); // rmdir t
+constexpr Node_kind cd_tree      = make_tree_node(136); // cd t
+constexpr Node_kind mv_tree      = make_tree_node(137); // mv t t1
 constexpr Node_kind arrow_tree   = make_tree_node(140); // t1 -> t2
 constexpr Node_kind tuple_tree   = make_tree_node(150); // {t1, ..., tn}
-constexpr Node_kind variant_tree = make_tree_node(151); // <t1, ..., tn>
-constexpr Node_kind comma_tree   = make_tree_node(152); // t1, ..., tn
-constexpr Node_kind dot_tree     = make_tree_node(153); // t1.t2
+constexpr Node_kind list_tree    = make_tree_node(151); // [t1, ..., tn]
+constexpr Node_kind variant_tree = make_tree_node(152); // <t1, ..., tn>
+constexpr Node_kind comma_tree   = make_tree_node(153); // t1, ..., tn
+constexpr Node_kind dot_tree     = make_tree_node(154); // t1.t2
 constexpr Node_kind print_tree   = make_tree_node(200); // print t
 constexpr Node_kind typeof_tree  = make_tree_node(201); // typeof t
 constexpr Node_kind prog_tree    = make_tree_node(500); // stmts
@@ -137,6 +143,57 @@ struct Pred_tree : Tree {
   Tree* t1;
 };
 
+//Rishi
+struct Ls_tree : Tree {
+  Ls_tree(const Token* k, Tree* t)
+    : Tree(ls_tree, k->loc), t1(t) { }
+
+  //Tree* expr() const { return t1; }
+
+  Tree* t1;
+};
+
+//Rishi
+struct Mkdir_tree : Tree {
+  Mkdir_tree(const Token* k, Tree* t)
+    : Tree(mkdir_tree, k->loc), t1(t) { }
+
+//  Tree* expr() const { return t1; }
+
+  Tree* t1;
+};
+
+//Rishi
+struct Rmdir_tree : Tree {
+  Rmdir_tree(const Token* k, Tree* t)
+    : Tree(rmdir_tree, k->loc), t1(t) { }
+
+//  Tree* expr() const { return t1; }
+
+  Tree* t1;
+};
+
+//Rishi
+struct Cd_tree : Tree {
+  Cd_tree(const Token* k, Tree* t)
+    : Tree(cd_tree, k->loc), t1(t) { }
+
+ // Tree* expr() const { return t1; }
+
+  Tree* t1;
+};
+
+//Rishi
+struct Mv_tree : Tree {
+  Mv_tree(const Token* k, Tree* t, Tree* t1)
+    : Tree(mv_tree, k->loc), t1(t) , t2(t1) { }
+
+ // Tree* expr() const { return t1; }
+
+  Tree* t1;
+  Tree* t2;
+};
+
 struct Iszero_tree : Tree {
   Iszero_tree(const Token* k, Tree* t)
     : Tree(iszero_tree, k->loc), t1(t) { }
@@ -193,6 +250,17 @@ struct Typeof_tree : Tree {
 struct Tuple_tree : Tree {
   Tuple_tree(const Token* k, Tree_seq* ts)
     : Tree(tuple_tree, k->loc), t1(ts) { }
+
+  Tree_seq* elems() const { return t1; }
+
+  Tree_seq* t1;
+};
+
+// A list of the form '[t1, ..., tn]' where each 'ti' is simply
+// some other term.
+struct List_tree : Tree {
+  List_tree(const Token* k, Tree_seq* ts)
+    : Tree(list_tree, k->loc), t1(ts) { }
 
   Tree_seq* elems() const { return t1; }
 
